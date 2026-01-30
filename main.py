@@ -19,7 +19,7 @@ class Bullet(pygame.sprite.Sprite):
         self.height = height
         self.speed = 10
 
-        self.image = pygame.image.load("assets/test.png")
+        self.image = pygame.image.load("assets/bullet.png")
         self.rect = self.image.get_rect()
 
     def draw(self, screen: pygame.surface.Surface) -> None:
@@ -63,13 +63,15 @@ class Game:
 
         # instantiate objects
         self.environment = Environment(self.width, self.height)
-        self.player = Player(self.width, self.height, self.width // 2, self.height - 80)
+        self.player = Player(self.width, self.height, self.width // 2, self.height - 60)
 
         # collision group for player & bullet
         self.all_sprites = pygame.sprite.Group()
         self.all_sprites.add(self.player)
-
         self.bullets = pygame.sprite.Group()
+
+        # lazer sound
+        self.shoot_sfx = pygame.mixer.Sound("sounds/shoot.mp3")
 
     def event_handler(self):
         MAX_BULLET = 5
@@ -84,6 +86,7 @@ class Game:
                         bullet.rect.center = self.player.rect.center
                         self.bullets.add(bullet)
                         self.all_sprites.add(bullet)
+                        self.shoot_sfx.play()
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -109,6 +112,7 @@ class Game:
 
 
 def main() -> None:
+    pygame.init()
     game = Game(500, 600)
     game.run()
 
