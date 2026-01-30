@@ -1,4 +1,5 @@
 import pygame
+import random
 
 
 class Environment:
@@ -27,6 +28,25 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         self.rect.y -= self.speed
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, width: int, height: int, x: int) -> None:
+        super().__init__()
+        self.width = width
+        self.height = height
+        self.speed = random.randint(1, 3)
+        self.x = x
+        self.y = 50
+
+        self.image = pygame.image.load("assets/enemy.png")
+        self.rect = self.image.get_rect(center=(self.x, self.y))
+
+    def draw(self, screen: pygame.surface.Surface):
+        screen.blit(self.image, self.rect)
+
+    def update(self):
+        self.rect.y += self.speed
 
 
 class Player(pygame.sprite.Sprite):
@@ -69,9 +89,16 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.all_sprites.add(self.player)
         self.bullets = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
+
+        for _ in range(5):
+            enemy = Enemy(self.width, self.height, random.randint(50, self.width - 50))
+            self.enemies.add(enemy)
+            self.all_sprites.add(enemy)
 
         # lazer sound
         self.shoot_sfx = pygame.mixer.Sound("sounds/shoot.mp3")
+        self.explode = pygame.mixer.Sound("sounds/explosion.mp3")
 
     def event_handler(self):
         MAX_BULLET = 5
@@ -92,6 +119,19 @@ class Game:
         keys = pygame.key.get_pressed()
         self.player.movement(keys)
         self.all_sprites.update()
+
+        hits = pygame.sprite.groupcollide(self.bullets, self.enemies, True, True)
+
+        if hits:
+            self.explode.play()
+
+        if pygame.sprite.spritecollide(self.player, self.enemies, False):
+            self.is_running = False
+
+        while len(self.enemies) < 5:
+            enemy = Enemy(self.width, self.height, random.randint(50, self.width - 50))
+            self.enemies.add(enemy)
+            self.all_sprites.add(enemy)
 
         for bullet in self.bullets:
             if bullet.rect.bottom < 0:
