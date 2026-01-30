@@ -13,6 +13,22 @@ class Environment:
         screen.blit(self.image, self.rect)
 
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, height: int) -> None:
+        super().__init__()
+        self.height = height
+        self.speed = 10
+
+        self.image = pygame.image.load("assets/test.png")
+        self.rect = self.image.get_rect()
+
+    def draw(self, screen: pygame.surface.Surface) -> None:
+        screen.blit(self.image, self.rect)
+
+    def update(self):
+        self.rect.y -= self.speed
+
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, width: int, height: int, x: int, y: int, speed: int = 7) -> None:
         super().__init__()
@@ -50,21 +66,37 @@ class Game:
         self.player = Player(self.width, self.height, self.width // 2, self.height - 80)
 
         # collision group for player & bullet
-        self.collision_group = pygame.sprite.Group()
-        self.collision_group.add(self.player)
+        self.all_sprites = pygame.sprite.Group()
+        self.all_sprites.add(self.player)
+
+        self.bullets = pygame.sprite.Group()
 
     def event_handler(self):
+        MAX_BULLET = 5
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.is_running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if len(self.bullets) < MAX_BULLET:
+                        bullet = Bullet(self.height)
+                        bullet.rect.center = self.player.rect.center
+                        self.bullets.add(bullet)
+                        self.all_sprites.add(bullet)
 
     def update(self):
         keys = pygame.key.get_pressed()
         self.player.movement(keys)
+        self.all_sprites.update()
+
+        for bullet in self.bullets:
+            if bullet.rect.bottom < 0:
+                bullet.kill()
 
     def draw(self):
         self.environment.draw(self.screen)
-        self.collision_group.draw(self.screen)
+        self.all_sprites.draw(self.screen)
 
     def run(self):
         while self.is_running:
