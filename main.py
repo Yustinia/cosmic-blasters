@@ -109,8 +109,8 @@ class Game:
             self.all_sprites.add(enemy)
 
         # lazer sound
-        self.shoot_sfx = pygame.mixer.Sound("sounds/shoot.mp3")
-        self.explode = pygame.mixer.Sound("sounds/explosion.mp3")
+        self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/shoot.mp3"))
+        self.explode = pygame.mixer.Sound(resource_path("sounds/explosion.mp3"))
 
     def event_handler(self):
         MAX_BULLET = 5
