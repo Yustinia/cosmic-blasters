@@ -35,9 +35,9 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__()
         self.width = width
         self.height = height
-        self.speed = random.randint(1, 3)
+        self.speed = random.randint(3, 10)
         self.x = x
-        self.y = 50
+        self.y = -100
 
         self.image = pygame.image.load("assets/enemy.png")
         self.rect = self.image.get_rect(center=(self.x, self.y))
@@ -50,7 +50,7 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, width: int, height: int, x: int, y: int, speed: int = 7) -> None:
+    def __init__(self, width: int, height: int, x: int, y: int, speed: int = 5) -> None:
         super().__init__()
         self.width = width
         self.height = height
@@ -91,7 +91,8 @@ class Game:
         self.bullets = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
 
-        for _ in range(5):
+        self.MAX_ENEMIES = 2
+        for _ in range(self.MAX_ENEMIES):
             enemy = Enemy(self.width, self.height, random.randint(50, self.width - 50))
             self.enemies.add(enemy)
             self.all_sprites.add(enemy)
@@ -120,19 +121,28 @@ class Game:
         self.player.movement(keys)
         self.all_sprites.update()
 
+        # bullet and enemy hit
         hits = pygame.sprite.groupcollide(self.bullets, self.enemies, True, True)
-
         if hits:
             self.explode.play()
 
+        # kill game player & enemy collision
         if pygame.sprite.spritecollide(self.player, self.enemies, False):
             self.is_running = False
 
-        while len(self.enemies) < 5:
+        # respawn new enemy
+        while len(self.enemies) < self.MAX_ENEMIES:
             enemy = Enemy(self.width, self.height, random.randint(50, self.width - 50))
             self.enemies.add(enemy)
             self.all_sprites.add(enemy)
 
+        # kill enemy off screen
+        for enemy in self.enemies:
+            if enemy.rect.top >= self.height:
+                enemy.kill()
+                self.MAX_ENEMIES += 1
+
+        # kill bullet off screen
         for bullet in self.bullets:
             if bullet.rect.bottom < 0:
                 bullet.kill()
