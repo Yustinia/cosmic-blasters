@@ -18,11 +18,18 @@ class Environment:
         self.width = width
         self.height = height
 
-        self.image = pygame.image.load(resource_path("assets/bg.png"))
-        self.rect = self.image.get_rect(center=(self.width // 2, self.height // 2))
+        self.image = pygame.image.load(resource_path("assets/bg.png")).convert()
+        self.y = 0
+        self.scroll_speed = 1
 
     def draw(self, screen: pygame.surface.Surface):
-        screen.blit(self.image, self.rect)
+        screen.blit(self.image, (0, self.y))
+        screen.blit(self.image, (0, self.y - self.height))
+
+    def update(self):
+        self.y += self.scroll_speed
+        if self.y >= self.height:
+            self.y = 0
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -31,7 +38,9 @@ class Bullet(pygame.sprite.Sprite):
         self.height = height
         self.speed = 10
 
-        self.image = pygame.image.load(resource_path("assets/bullet.png"))
+        self.image = pygame.image.load(
+            resource_path("assets/bullet.png")
+        ).convert_alpha()
         self.rect = self.image.get_rect()
 
     def draw(self, screen: pygame.surface.Surface) -> None:
@@ -50,7 +59,9 @@ class Enemy(pygame.sprite.Sprite):
         self.x = x
         self.y = -100
 
-        self.image = pygame.image.load(resource_path("assets/enemy.png"))
+        self.image = pygame.image.load(
+            resource_path("assets/enemy.png")
+        ).convert_alpha()
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self, screen: pygame.surface.Surface):
@@ -69,7 +80,9 @@ class Player(pygame.sprite.Sprite):
         self.y = y
         self.speed = speed
 
-        self.image = pygame.image.load(resource_path("assets/player.png"))
+        self.image = pygame.image.load(
+            resource_path("assets/player.png")
+        ).convert_alpha()
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self, screen):
@@ -82,18 +95,48 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += self.speed
 
 
-class Game:
+class MainMenu:
     def __init__(self, width: int, height: int) -> None:
         self.width = width
         self.height = height
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        caption = pygame.display.set_caption("Alien Shooter")
+        self.x = self.width // 2
+        self.y = self.height // 2
 
-        self.clock = pygame.time.Clock()
-        self.is_running = True
+        title_font = pygame.font.Font(None, 64)
+        sub_font = pygame.font.Font(None, 24)
+        WHITE = (255, 255, 255)
+        self.title_surf = title_font.render("Cosmic Blasters", True, WHITE)
+        self.title_rect = self.title_surf.get_rect(center=(self.x, self.y - 25))
+        self.sub_surf = sub_font.render("Press SPACE to start", True, WHITE)
+        self.sub_rect = self.sub_surf.get_rect(center=(self.x, self.y + 25))
+
+        self.player = Player(self.width, self.height, self.width // 2, self.height - 60)
+        self.speed = 5
+        self.vd = -1
+
+        self.sub_flicker = 0
+
+    def draw(self, screen):
+        self.sub_flicker += 1
+        screen.blit(self.title_surf, self.title_rect)
+
+        if (self.sub_flicker // 30) % 2 == 0:
+            screen.blit(self.sub_surf, self.sub_rect)
+        self.player.draw(screen)
+
+    def update(self):
+        self.player.rect.x += self.speed
+        if self.player.rect.right >= self.width or self.player.rect.left <= 0:
+            self.speed *= self.vd
+
+
+class PlayingGame:
+    def __init__(self, width: int, height: int, screen) -> None:
+        self.width = width
+        self.height = height
+        self.screen = screen
 
         # instantiate objects
-        self.environment = Environment(self.width, self.height)
         self.player = Player(self.width, self.height, self.width // 2, self.height - 60)
 
         # collision group for player & bullet
@@ -112,23 +155,19 @@ class Game:
         self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/shoot.mp3"))
         self.explode = pygame.mixer.Sound(resource_path("sounds/explosion.mp3"))
 
-    def event_handler(self):
+    def event_handler(self, events):
         MAX_BULLET = 5
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.is_running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    if len(self.bullets) < MAX_BULLET:
-                        bullet = Bullet(self.height)
-                        bullet.rect.center = self.player.rect.center
-                        self.bullets.add(bullet)
-                        self.all_sprites.add(bullet)
-                        self.shoot_sfx.play()
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if len(self.bullets) < MAX_BULLET:
+                    bullet = Bullet(self.height)
+                    bullet.rect.center = self.player.rect.center
+                    self.bullets.add(bullet)
+                    self.all_sprites.add(bullet)
+                    self.shoot_sfx.play()
 
-    def update(self):
-        keys = pygame.key.get_pressed()
+    def update(self, keys) -> str | None:
         self.player.movement(keys)
         self.all_sprites.update()
 
@@ -139,7 +178,8 @@ class Game:
 
         # kill game player & enemy collision
         if pygame.sprite.spritecollide(self.player, self.enemies, False):
-            self.is_running = False
+            status = "LOSE"
+            return status
 
         # respawn new enemy
         while len(self.enemies) < self.MAX_ENEMIES:
@@ -159,8 +199,61 @@ class Game:
                 bullet.kill()
 
     def draw(self):
-        self.environment.draw(self.screen)
         self.all_sprites.draw(self.screen)
+
+
+class GameManager:
+    def __init__(self, width: int, height: int, state: str = "MAINMENU") -> None:
+        self.width = width
+        self.height = height
+        self.screen = pygame.display.set_mode((self.width, self.height))
+        caption = pygame.display.set_caption("Cosmic Blasters")
+
+        self.clock = pygame.time.Clock()
+        self.is_running = True
+        self.state = "MAINMENU"  # MAINMENU, PLAYING
+
+        self.environment = Environment(self.width, self.height)
+        self.mainmenu = MainMenu(self.width, self.height)
+
+    def draw(self):
+        self.environment.draw(self.screen)
+        match self.state:
+            case "MAINMENU":
+                self.mainmenu.draw(self.screen)
+            case "PLAYING":
+                self.playing.draw()
+
+    def update(self):
+        self.environment.update()
+        match self.state:
+            case "MAINMENU":
+                self.mainmenu.update()
+            case "PLAYING":
+                keys = pygame.key.get_pressed()
+                status = self.playing.update(keys)
+
+                if status == "LOSE":
+                    self.state = "MAINMENU"
+
+    def event_handler(self):
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.is_running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if self.state == "MAINMENU":
+                    self._start_game()
+
+        match self.state:
+            case "MAINMENU":
+                pass
+            case "PLAYING":
+                self.playing.event_handler(events)
+
+    def _start_game(self):
+        self.playing = PlayingGame(self.width, self.height, self.screen)
+        self.state = "PLAYING"
 
     def run(self):
         while self.is_running:
@@ -176,8 +269,8 @@ def main() -> None:
     pygame.init()
     pygame.mixer.music.load(resource_path("sounds/OST.mp3"))
     pygame.mixer.music.play(loops=-1)
-    game = Game(500, 600)
-    game.run()
+    manager = GameManager(500, 600)
+    manager.run()
 
 
 if __name__ == "__main__":
