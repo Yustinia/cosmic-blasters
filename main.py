@@ -1,5 +1,16 @@
 import pygame
 import random
+import os
+import sys
+
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 class Environment:
@@ -7,7 +18,7 @@ class Environment:
         self.width = width
         self.height = height
 
-        self.image = pygame.image.load("assets/bg.png")
+        self.image = pygame.image.load(resource_path("assets/bg.png"))
         self.rect = self.image.get_rect(center=(self.width // 2, self.height // 2))
 
     def draw(self, screen: pygame.surface.Surface):
@@ -20,7 +31,7 @@ class Bullet(pygame.sprite.Sprite):
         self.height = height
         self.speed = 10
 
-        self.image = pygame.image.load("assets/bullet.png")
+        self.image = pygame.image.load(resource_path("assets/bullet.png"))
         self.rect = self.image.get_rect()
 
     def draw(self, screen: pygame.surface.Surface) -> None:
@@ -39,7 +50,7 @@ class Enemy(pygame.sprite.Sprite):
         self.x = x
         self.y = -100
 
-        self.image = pygame.image.load("assets/enemy.png")
+        self.image = pygame.image.load(resource_path("assets/enemy.png"))
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self, screen: pygame.surface.Surface):
@@ -58,7 +69,7 @@ class Player(pygame.sprite.Sprite):
         self.y = y
         self.speed = speed
 
-        self.image = pygame.image.load("assets/player.png")
+        self.image = pygame.image.load(resource_path("assets/player.png"))
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self, screen):
@@ -98,8 +109,8 @@ class Game:
             self.all_sprites.add(enemy)
 
         # lazer sound
-        self.shoot_sfx = pygame.mixer.Sound("sounds/shoot.mp3")
-        self.explode = pygame.mixer.Sound("sounds/explosion.mp3")
+        self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/shoot.mp3"))
+        self.explode = pygame.mixer.Sound(resource_path("sounds/explosion.mp3"))
 
     def event_handler(self):
         MAX_BULLET = 5
