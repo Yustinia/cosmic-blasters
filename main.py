@@ -174,6 +174,8 @@ class Game:
 
 def main() -> None:
     pygame.init()
+    pygame.mixer.music.load(resource_path("sounds/OST.mp3"))
+    pygame.mixer.music.play(loops=-1)
     game = Game(500, 600)
     game.run()
 
