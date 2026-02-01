@@ -18,7 +18,7 @@ class Environment:
         self.width = width
         self.height = height
 
-        self.image = pygame.image.load(resource_path("assets/bg.png")).convert()
+        self.image = pygame.image.load(resource_path("assets/images/bg.png")).convert()
         self.y = 0
         self.scroll_speed = 1
 
@@ -39,7 +39,7 @@ class Bullet(pygame.sprite.Sprite):
         self.speed = 10
 
         self.image = pygame.image.load(
-            resource_path("assets/bullet.png")
+            resource_path("assets/images/bullet.png")
         ).convert_alpha()
         self.rect = self.image.get_rect()
 
@@ -60,7 +60,7 @@ class Enemy(pygame.sprite.Sprite):
         self.y = -100
 
         self.image = pygame.image.load(
-            resource_path("assets/enemy.png")
+            resource_path("assets/images/enemy.png")
         ).convert_alpha()
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
@@ -81,7 +81,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = speed
 
         self.image = pygame.image.load(
-            resource_path("assets/player.png")
+            resource_path("assets/images/player.png")
         ).convert_alpha()
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
@@ -102,8 +102,8 @@ class MainMenu:
         self.x = self.width // 2
         self.y = self.height // 2
 
-        title_font = pygame.font.Font(None, 64)
-        sub_font = pygame.font.Font(None, 24)
+        title_font = pygame.font.Font(resource_path("assets/fonts/Symtext.ttf"), 40)
+        sub_font = pygame.font.Font(resource_path("assets/fonts/Symtext.ttf"), 20)
         WHITE = (255, 255, 255)
         self.title_surf = title_font.render("Cosmic Blasters", True, WHITE)
         self.title_rect = self.title_surf.get_rect(center=(self.x, self.y - 25))
@@ -152,8 +152,9 @@ class PlayingGame:
             self.all_sprites.add(enemy)
 
         # lazer sound
-        self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/shoot.mp3"))
-        self.explode = pygame.mixer.Sound(resource_path("sounds/explosion.mp3"))
+        self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/effect/shoot.mp3"))
+        self.explode = pygame.mixer.Sound(resource_path("sounds/effect/explosion.mp3"))
+        self.death = pygame.mixer.Sound(resource_path("sounds/effect/death.mp3"))
 
     def event_handler(self, events):
         MAX_BULLET = 5
@@ -178,6 +179,7 @@ class PlayingGame:
 
         # kill game player & enemy collision
         if pygame.sprite.spritecollide(self.player, self.enemies, False):
+            self.death.play()
             status = "LOSE"
             return status
 
@@ -257,17 +259,19 @@ class GameManager:
 
     def run(self):
         while self.is_running:
+
             self.event_handler()
             self.update()
             self.draw()
             self.clock.tick(60)
+
             pygame.display.update()
         pygame.quit()
 
 
 def main() -> None:
     pygame.init()
-    pygame.mixer.music.load(resource_path("sounds/OST.mp3"))
+    pygame.mixer.music.load(resource_path("sounds/music/OST.mp3"))
     pygame.mixer.music.play(loops=-1)
     manager = GameManager(500, 600)
     manager.run()
