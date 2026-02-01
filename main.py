@@ -72,7 +72,7 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, width: int, height: int, x: int, y: int, speed: int = 5) -> None:
+    def __init__(self, width: int, height: int, x: int, y: int, speed: int = 8) -> None:
         super().__init__()
         self.width = width
         self.height = height
@@ -107,11 +107,11 @@ class MainMenu:
         WHITE = (255, 255, 255)
         self.title_surf = title_font.render("Cosmic Blasters", True, WHITE)
         self.title_rect = self.title_surf.get_rect(center=(self.x, self.y - 25))
-        self.sub_surf = sub_font.render("Press SPACE to start", True, WHITE)
+        self.sub_surf = sub_font.render("Press 'SPACE' to start", True, WHITE)
         self.sub_rect = self.sub_surf.get_rect(center=(self.x, self.y + 25))
 
         self.player = Player(self.width, self.height, self.width // 2, self.height - 60)
-        self.speed = 5
+        self.speed = self.player.speed
         self.vd = -1
 
         self.sub_flicker = 0
@@ -131,10 +131,9 @@ class MainMenu:
 
 
 class PlayingGame:
-    def __init__(self, width: int, height: int, screen) -> None:
+    def __init__(self, width: int, height: int) -> None:
         self.width = width
         self.height = height
-        self.screen = screen
 
         # instantiate objects
         self.player = Player(self.width, self.height, self.width // 2, self.height - 60)
@@ -151,10 +150,14 @@ class PlayingGame:
             self.enemies.add(enemy)
             self.all_sprites.add(enemy)
 
-        # lazer sound
+        # sfx
         self.shoot_sfx = pygame.mixer.Sound(resource_path("sounds/effect/shoot.mp3"))
         self.explode = pygame.mixer.Sound(resource_path("sounds/effect/explosion.mp3"))
         self.death = pygame.mixer.Sound(resource_path("sounds/effect/death.mp3"))
+        self.miss = pygame.mixer.Sound(resource_path("sounds/effect/miss.mp3"))
+
+        # score
+        self.current_score = 0
 
     def event_handler(self, events):
         MAX_BULLET = 5
@@ -175,6 +178,7 @@ class PlayingGame:
         # bullet and enemy hit
         hits = pygame.sprite.groupcollide(self.bullets, self.enemies, True, True)
         if hits:
+            self.current_score += 1
             self.explode.play()
 
         # kill game player & enemy collision
@@ -193,6 +197,7 @@ class PlayingGame:
         for enemy in self.enemies:
             if enemy.rect.top >= self.height:
                 enemy.kill()
+                self.miss.play()
                 self.MAX_ENEMIES += 1
 
         # kill bullet off screen
@@ -200,8 +205,25 @@ class PlayingGame:
             if bullet.rect.bottom < 0:
                 bullet.kill()
 
-    def draw(self):
-        self.all_sprites.draw(self.screen)
+    def draw(self, screen):
+        self.all_sprites.draw(screen)
+
+        # score text
+        WHITE = (255, 255, 255)
+
+        basic_text = pygame.font.Font(resource_path("assets/fonts/Symtext.ttf"), 18)
+
+        score_surf = basic_text.render(f"Score: {self.current_score}", True, WHITE)
+        score_rect = score_surf.get_rect(topleft=(20, 20))
+        screen.blit(score_surf, score_rect)
+
+        current_enemies_surf = basic_text.render(
+            f"Enemies: {self.MAX_ENEMIES}", True, WHITE
+        )
+        current_enemies_rect = current_enemies_surf.get_rect(
+            midbottom=(self.width // 2, self.height - 10)
+        )
+        screen.blit(current_enemies_surf, current_enemies_rect)
 
 
 class GameManager:
@@ -224,7 +246,7 @@ class GameManager:
             case "MAINMENU":
                 self.mainmenu.draw(self.screen)
             case "PLAYING":
-                self.playing.draw()
+                self.playing.draw(self.screen)
 
     def update(self):
         self.environment.update()
@@ -254,7 +276,7 @@ class GameManager:
                 self.playing.event_handler(events)
 
     def _start_game(self):
-        self.playing = PlayingGame(self.width, self.height, self.screen)
+        self.playing = PlayingGame(self.width, self.height)
         self.state = "PLAYING"
 
     def run(self):
@@ -273,7 +295,7 @@ def main() -> None:
     pygame.init()
     pygame.mixer.music.load(resource_path("sounds/music/OST.mp3"))
     pygame.mixer.music.play(loops=-1)
-    manager = GameManager(500, 600)
+    manager = GameManager(600, 900)
     manager.run()
 
 
