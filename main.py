@@ -202,7 +202,7 @@ class PlayingGame:
 
         # kill bullet off screen
         for bullet in self.bullets:
-            if bullet.rect.bottom < 0:
+            if bullet.rect.bottom <= 0:
                 bullet.kill()
 
     def draw(self, screen):
